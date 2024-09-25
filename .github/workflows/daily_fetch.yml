@@ -32,7 +32,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: 'dummy-domain-list-${{ github.run_id }}'
+        tag_name: 'domain-list-${{ env.RELEASE_TIME }}'
         release_name: 'Domain List ${{ env.RELEASE_TIME }}'
         body: "Generated domain list for by ${{ github.run_id }} in ${{ env.RELEASE_TIME }}"
         draft: false

@@ -40,3 +40,5 @@ jobs:
         asset_path: ./domain_list.txt
         asset_name: domain_list.txt
         asset_content_type: text/plain
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

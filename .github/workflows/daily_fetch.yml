@@ -1,0 +1,38 @@
+name: Daily Dummy Domain Fetch
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # 毎日00:00 UTCに実行
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.x'  # 必要なPythonバージョンを指定
+
+    - name: Run script
+      run: python fetch_domains.py
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      with:
+        tag_name: 'dummy-domain-list-${{ github.run_id }}'
+        release_name: 'Dummy Domain List ${{ github.run_id }}'
+        body: "Generated dummy domain list for ${{ github.run_id }}"
+        draft: false
+        prerelease: false
+
+    - name: Upload domain list
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./domain_list.txt
+        asset_name: domain_list.txt
+        asset_content_type: text/plain

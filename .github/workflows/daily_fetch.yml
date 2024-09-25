@@ -1,5 +1,4 @@
 name: Domain Fetch
-description: Fetch domain list daily
 on:
   schedule:
     - cron: '0 0 * * *'  # 毎日00:00 UTCに実行

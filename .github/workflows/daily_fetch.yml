@@ -19,11 +19,11 @@ jobs:
     
     # 現在の時刻を取得して環境変数に保存
     - name: Get current timestamp
-      id: timestamp
+      id: timestamp1
       run: echo "RELEASE_TIME=$(date '+%Y%m%d%H%M%S')" >> $GITHUB_ENV
 
     - name: Get formatted timestamp
-      id: timestamp
+      id: timestamp2
       run: echo "FORMATTED_TIME=$(date '+%Y/%m/%d %H:%M:%S')" >> $GITHUB_ENV
 
     - name: Run script
@@ -37,7 +37,7 @@ jobs:
       with:
         tag_name: 'domain-list-${{ env.RELEASE_TIME }}'
         release_name: 'Domain List ${{ env.FORMATTED_TIME }}'
-        body: "Generated domain list for by ${{ github.run_id }} in ${{ env.RELEASE_TIME }}"
+        body: "Generated domain list for by ${{ github.run_id }} in ${{ env.FORMATTED_TIME }}"
         draft: false
         prerelease: false
 

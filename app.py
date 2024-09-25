@@ -10,8 +10,15 @@ def save_dummy_urls():
     # テキストファイルにURLを1行ずつ書き込む
     with open("domain_list.txt", "w") as f:
         for url in urls:
-            f.write(url + "\n")
-    print("Dummy URLs saved to domain_list.txt")
+            f.write(url + ",")
+    print("created")
 
 if __name__ == "__main__":
-    save_dummy_urls()
+    try:
+        save_dummy_urls()
+    
+    except Exception as e:
+        print(e)
+
+    finally:
+        print("done")

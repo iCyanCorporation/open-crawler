@@ -27,7 +27,7 @@ jobs:
       run: echo "FORMATTED_TIME=$(date '+%Y/%m/%d %H:%M:%S')" >> $GITHUB_ENV
 
     - name: Run script
-      run: python fetch_domains.py
+      run: python app.py
 
     - name: Create Release
       id: create_release

@@ -154,7 +154,8 @@ class DomainSpider(scrapy.Spider):
 
         # Extract links from the page and add them to the visited_urls array
         links = response.css('a::attr(href)').getall()
-        for link in links:
+        for olink in links:
+            link = self.format_link(olink)
             if link.startswith('http') and link not in self.visited_urls:
                 # Check robots.txt
                 if rp and rp.can_fetch('*', link):
@@ -167,19 +168,24 @@ class DomainSpider(scrapy.Spider):
                     #     continue
 
                     # If not visited and directory does not exist, process the link
-                    self.visited_urls.add(new_link)
-                    yield scrapy.Request(new_link, callback=self.parse, errback=self.errback_handler)
+                    self.visited_urls.add(link)
+                    yield scrapy.Request(link, callback=self.parse, errback=self.errback_handler)
 
     def errback_handler(self, failure):
-        """"""
-        # エラー時の処理
-        # self.logger.error(repr(failure))
+        
+        # self.logger.error(f"Error encountered: {repr(failure)}")
 
         # if failure.check(DNSLookupError):
-        #     self.logger.error(f"DNSLookupError on {failure.request.url}")
-        #     # DNSLookupError発生時に特定の処理を行う（例: ログに記録し、スキップ）
+        #     # DNSエラーの場合は特に処理を行わず、スキップ
+        #     self.logger.error(f"DNSLookupError on {failure.request.url}, skipping...")
         # elif failure.check(TimeoutError, TCPTimedOutError):
-        #     self.logger.error(f"TimeoutError on {failure.request.url}")
+        #     # タイムアウトエラーの場合もスキップ
+        #     self.logger.error(f"TimeoutError on {failure.request.url}, skipping...")
+        # else:
+        #     # その他のエラーもスキップ
+        #     self.logger.error(f"Other Error on {failure.request.url}, skipping...")
+        # # 必要な場合は、ここで他の処理（ログ出力やカウンタ更新）を行う
+        pass
 
     def create_dir(self, path):
         if not os.path.exists(path):
@@ -207,11 +213,13 @@ def main():
     process = CrawlerProcess(settings={
         # Set log level (change to 'DEBUG' for debug information)
         'LOG_LEVEL': 'ERROR',
-        'CONCURRENT_REQUESTS': 100,  # 最大スレッドで並行処理
+        'CONCURRENT_REQUESTS': 30,  # 最大スレッドで並行処理
         'DOWNLOAD_DELAY': 0.25,
-        'RETRY_TIMES': 2, 
-        'DNS_TIMEOUT': 3,   
-        'DOWNLOAD_TIMEOUT': 5, 
+        'DOWNLOAD_TIMEOUT': 1,
+        'RETRY_ENABLED': False,
+        'RETRY_TIMES': 0, 
+        'DNS_TIMEOUT': 1,   
+        'DOWNLOAD_TIMEOUT': 1, 
     })
 
     # Run the crawler spider

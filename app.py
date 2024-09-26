@@ -7,6 +7,7 @@ from urllib.robotparser import RobotFileParser
 from pathlib import Path
 from markdownify import markdownify as md
 import chardet  # For detecting encoding when necessary
+from publicsuffix2 import get_sld
 
 # Function to fetch and parse robots.txt
 def parse_robots_txt(url):
@@ -25,14 +26,12 @@ def parse_robots_txt(url):
     
     return rp
 
-# Function to extract the root domain
+# Function to extract the root domain using the Public Suffix List
 def get_root_domain(url):
     parsed_url = urlparse(url)
-    domain_parts = parsed_url.netloc.split('.')
-    # Return the last two parts of the domain, like google.com or apple.com
-    if len(domain_parts) > 2:
-        return ".".join(domain_parts[-2:])
-    return parsed_url.netloc
+    # Get the registrable domain (e.g., example.com, example.co.jp)
+    root_domain = get_sld(parsed_url.netloc)
+    return root_domain
 
 # Function to safely generate a filename
 def safe_filename(url):

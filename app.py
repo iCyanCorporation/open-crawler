@@ -103,12 +103,16 @@ class DomainSpider(scrapy.Spider):
             html_content = response.text  # Use default encoding as a fallback
 
         # Convert HTML to Markdown
-        markdown_content = md(html_content)
+        # markdown_content = md(html_content)
 
         # Save to file with UTF-8 encoding
-        with open(file_path, 'w', encoding='utf-8') as file:
-            file.write(markdown_content)
-            print(f"Saved: {file_path}")
+        if os.path.exists(file_path):
+            print(f"create: {file_path}, skipping...")
+        else:
+            with open(file_path, 'w', encoding='utf-8') as file:
+                # file.write(markdown_content)
+                file.write("")
+                print(f"Saved: {file_path}")
 
         # Check the allowed status of the current page's robots.txt
         rp = self.allowed_paths.get(root_domain)
@@ -126,9 +130,9 @@ class DomainSpider(scrapy.Spider):
                     link_root_domain = get_root_domain(link)
                     link_tld = link_root_domain.split('.')[-1]
                     link_save_dir = os.path.join('domains', link_tld, link_root_domain)
-                    if os.path.exists(link_save_dir):
-                        print(f"Directory already exists for {link}, skipping...")
-                        continue
+                    # if os.path.exists(link_save_dir):
+                    #     print(f"Directory already exists for {link}, skipping...")
+                    #     continue
 
                     # If not visited and directory does not exist, process the link
                     self.visited_urls.add(link)
@@ -147,10 +151,11 @@ def main():
     # Set start URLs (e.g., 5 major sites)
     start_urls = [
         'https://www.wikipedia.org',
-        'https://www.amazon.com',
-        'https://www.youtube.com',
-        'https://www.ebay.com',
-        'https://www.twitter.com'
+        'https://www.xploredomains.com/'
+        # 'https://www.amazon.com',
+        # 'https://www.youtube.com',
+        # 'https://www.ebay.com',
+        # 'https://www.twitter.com'
     ]
     
     # Set up and start the Scrapy process

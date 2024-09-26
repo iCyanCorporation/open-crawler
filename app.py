@@ -8,6 +8,7 @@ from pathlib import Path
 from markdownify import markdownify as md
 import chardet  # For detecting encoding when necessary
 from publicsuffix2 import get_sld
+from twisted.internet.error import DNSLookupError, TimeoutError, TCPTimedOutError
 
 # Function to fetch and parse robots.txt
 def parse_robots_txt(url):
@@ -22,7 +23,8 @@ def parse_robots_txt(url):
     try:
         rp.read()
     except Exception as e:
-        print(f"Error reading robots.txt: {robots_url} - {e}")
+        # print(f"Error reading robots.txt: {robots_url} - {e}")
+        pass
     
     return rp
 
@@ -36,12 +38,20 @@ def get_root_domain(url):
 # Function to safely generate a filename
 def safe_filename(url):
     parsed_url = urlparse(url)
-    # Convert URL path to filename and replace invalid characters
-    file_name = parsed_url.netloc + parsed_url.path
-    file_name = file_name.strip('/').replace('/', '_').replace(':', '_')
+    netloc = parsed_url.hostname if parsed_url.hostname else parsed_url.netloc.split(':')[0]
+    path = parsed_url.path
+    file_name = f"{netloc}{path}"
+
+    # Replace all characters that are not allowed in filenames
+    sign_list = ['/', '?', '*', '|', '<', '>', '"']
+    for sign in sign_list:
+        file_name = file_name.replace(sign, '_')
+
+    # If the filename does not end with .txt, append .txt
     if not file_name.endswith('.txt'):
         file_name += '.txt'
     return file_name
+
 
 # Definition of Scrapy crawler spider
 class DomainSpider(scrapy.Spider):
@@ -53,7 +63,8 @@ class DomainSpider(scrapy.Spider):
 
         self.start_urls = start_urls
         self.visited_urls = set()
-        
+        self.count = 0
+
         # Parse robots.txt for each URL and create a dictionary to manage allowed paths
         self.allowed_paths = {}
         for url in start_urls:
@@ -75,8 +86,19 @@ class DomainSpider(scrapy.Spider):
         for tld in tld_list:
             tld_path = os.path.join('domains', tld)
             self.create_dir(tld_path)
+    
+    def format_link(self, link):
+        # Remove port number
+        parsed_url = urlparse(link)
+        netloc = parsed_url.hostname if parsed_url.hostname else parsed_url.netloc.split(':')[0]  # Use hostname to avoid issues
+        path = parsed_url.path
+        return f"{parsed_url.scheme}://{netloc}{path}"
+
 
     def parse(self, response):
+        self.count += 1
+        print(f"count: {self.count}", end="\r")
+
         # Parse the URL and extract the root domain
         root_domain = get_root_domain(response.url)
         tld = root_domain.split('.')[-1]
@@ -98,7 +120,7 @@ class DomainSpider(scrapy.Spider):
         try:
             html_content = response.body.decode(response_encoding, errors='replace')
         except Exception as e:
-            print(f"Encoding error for {response.url}: {e}")
+            # print(f"Encoding error for {response.url}: {e}")
             html_content = response.text  # Use default encoding as a fallback
 
         # Convert HTML to Markdown
@@ -106,17 +128,17 @@ class DomainSpider(scrapy.Spider):
 
         # Save to file with UTF-8 encoding
         if os.path.exists(file_path):
-            print(f"create: {file_path}, skipping...")
+            # print(f"create: {file_path}, skipping...")
+            pass
         else:
             with open(file_path, 'w', encoding='utf-8') as file:
                 # file.write(markdown_content)
                 file.write("")
-                print(f"Saved: {file_path}")
 
         # Check the allowed status of the current page's robots.txt
         rp = self.allowed_paths.get(root_domain)
         if not rp or not rp.can_fetch('*', response.url):
-            print(f"This URL is disallowed: {response.url}")
+            # print(f"This URL is disallowed: {response.url}")
             return
 
         # Extract links from the page and add them to the visited_urls array
@@ -126,21 +148,32 @@ class DomainSpider(scrapy.Spider):
                 # Check robots.txt
                 if rp and rp.can_fetch('*', link):
                     # Check if the corresponding directory already exists
-                    link_root_domain = get_root_domain(link)
-                    link_tld = link_root_domain.split('.')[-1]
-                    link_save_dir = os.path.join('domains', link_tld, link_root_domain)
+                    new_link = self.format_link(link)
+                    # link_tld = link_root_domain.split('.')[-1]
+                    # link_save_dir = os.path.join('domains', link_tld, link_root_domain)
                     # if os.path.exists(link_save_dir):
                     #     print(f"Directory already exists for {link}, skipping...")
                     #     continue
 
                     # If not visited and directory does not exist, process the link
-                    self.visited_urls.add(link)
-                    yield scrapy.Request(link, callback=self.parse)
+                    self.visited_urls.add(new_link)
+                    yield scrapy.Request(new_link, callback=self.parse, errback=self.errback_handler)
+
+    def errback_handler(self, failure):
+        """"""
+        # エラー時の処理
+        # self.logger.error(repr(failure))
+
+        # if failure.check(DNSLookupError):
+        #     self.logger.error(f"DNSLookupError on {failure.request.url}")
+        #     # DNSLookupError発生時に特定の処理を行う（例: ログに記録し、スキップ）
+        # elif failure.check(TimeoutError, TCPTimedOutError):
+        #     self.logger.error(f"TimeoutError on {failure.request.url}")
 
     def create_dir(self, path):
         if not os.path.exists(path):
             os.makedirs(path)
-            print(f"Directory created: {path}")
+            # print(f"Directory created: {path}")
 
 # Main function
 def main():
@@ -159,7 +192,9 @@ def main():
     
     # Set up and start the Scrapy process
     process = CrawlerProcess(settings={
-        'LOG_LEVEL': 'INFO',  # Set log level (change to 'DEBUG' for debug information)
+        'LOG_LEVEL': 'ERROR',  # Set log level (change to 'DEBUG' for debug information)
+        'CONCURRENT_REQUESTS': 100,  # 最大スレッドで並行処理
+        'DOWNLOAD_DELAY': 0.25, 
     })
     
     # Run the crawler spider

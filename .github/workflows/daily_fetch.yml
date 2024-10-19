@@ -1,9 +1,8 @@
 name: Domain Fetch
 on:
-  schedule:
-    - cron: '0 0 * * *'  # 毎日00:00 UTCに実行
+  #schedule:
+  #  - cron: '0 0 * * *'  # 毎日00:00 UTCに実行
   workflow_dispatch:
-
 
 jobs:
   fetch:
